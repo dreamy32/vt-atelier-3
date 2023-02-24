@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <form>
+        <label for="location-search">Location:</label>
+        <input type="text" id="location-search" value="Quebec">
+        <span><i>Appuyer sur <b>Enter</b></i></span>
+    </form>
+
+
+    <div id="chart_div" style="width: 100%; height: 600px; margin:auto"></div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script>
+    const API_Key = "b6f373b61c903c6f18fd774f963397b8";
+
+    function fetchWeather() {
+        let location_term = $("#location-search").val().toLowerCase();
+        let url = `https://api.openweathermap.org/data/2.5/forecast?q=${location_term}&appid=${API_Key}&units=metric&cnt=40`;
+        console.log("Lien: " + url);
+        console.log('%c Fetched !', 'font-weight: bold; font-size: 50px;color: red; text-shadow: 3px 3px 0 rgb(217,31,38) , 6px 6px 0 rgb(226,91,14) , 9px 9px 0 rgb(245,221,8) , 12px 12px 0 rgb(5,148,68) , 15px 15px 0 rgb(2,135,206) , 18px 18px 0 rgb(4,77,145) , 21px 21px 0 rgb(42,21,113)')
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const chartData = data.list.reduce((acc, item) => {
+                    const date = new Date(item.dt_txt).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit"
+                    });
+                    const existing = acc.find(entry => entry[0] === date);
+                    if (!existing) {
+                        acc.push([date, item.main.temp_min, item.main.temp_max]);
+                    } else {
+                        existing[1] = Math.min(existing[1], item.main.temp_min);
+                        existing[2] = Math.max(existing[2], item.main.temp_max);
+                    }
+                    return acc;
+                }, []);
+                chartData.unshift(["Date", "MIN", "MAX"]);
+                console.log(chartData);
+                google.charts.load("current", { packages: ["corechart"] });
+                google.charts.setOnLoadCallback(drawChart);
+                function drawChart() {
+                    const chart = new google.visualization.LineChart(document.getElementById("chart_div"));
+                    const data = google.visualization.arrayToDataTable(chartData);
+                    chart.draw(data, {
+                        title: `${location_term.replace(/^\w/, c => c.toUpperCase())} - Prévisions 5 jours`,
+                        lineWidth: 5,
+                        legend: { position: "top" },
+                    });
+                }
+            })
+            .catch(error => console.error(error));
+    }
+
+</script>
+<script defer>
+    fetchWeather();
+    $("form").submit((e) => {
+        e.preventDefault();
+        fetchWeather();
+    });
+</script>
+
+</html>
